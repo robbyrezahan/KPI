@@ -317,7 +317,6 @@
             years.forEach(yr => {
                 const yrShort = String(yr).slice(-2);
                 monthNames.forEach((mName, idx) => {
-                    // Calculate days in month (handling leap years)
                     const days = new Date(yr, idx + 1, 0).getDate();
                     const code = `${monthCodes[idx]}-${yrShort}`;
                     list.push({
@@ -332,12 +331,11 @@
         }
 
         const availableMonths = generateMonthList();
-        let currentMonthCode = 'OCT-26'; // Default selected month
+        let currentMonthCode = 'OCT-26';
         let dateColumns = [];
         let fixedHeaders = [];
         let siteData = [];
 
-        // Build Date Columns dynamically based on current selected month
         function updateDateColumnsConfig() {
             const monthInfo = availableMonths.find(m => m.code === currentMonthCode) || availableMonths[0];
             dateColumns = Array.from({ length: monthInfo.days }, (_, i) => `${i + 1}-${monthInfo.code}`);
@@ -354,14 +352,12 @@
             if (footerLabel) footerLabel.innerText = monthInfo.name;
         }
 
-        // Initialize Month Selector Options for 2026 and 2027
         function initMonthSelector() {
             const select = document.getElementById('monthSelect');
             select.innerHTML = availableMonths.map(m => `<option value="${m.code}">${m.name}</option>`).join('');
             select.value = currentMonthCode;
         }
 
-        // Change Active Month
         function changeActiveMonth() {
             const select = document.getElementById('monthSelect');
             currentMonthCode = select.value;
@@ -371,7 +367,6 @@
             renderTable();
         }
 
-        // Generate Sample Initial Data per Month
         function getInitialSampleData() {
             return [
                 {
@@ -419,7 +414,6 @@
             return `TELECOM_SLA_DATA_${currentMonthCode}`;
         }
 
-        // Load Data from LocalStorage for active month
         function loadSavedData() {
             try {
                 const saved = localStorage.getItem(getStorageKey());
@@ -435,7 +429,6 @@
             }
         }
 
-        // Save Data to LocalStorage
         function saveToLocalStorage() {
             try {
                 localStorage.setItem(getStorageKey(), JSON.stringify(siteData));
@@ -444,7 +437,6 @@
             }
         }
 
-        // Reset Data to Initial for current month
         function resetDataToDefault() {
             const monthInfo = availableMonths.find(m => m.code === currentMonthCode);
             if (confirm(`Apakah Anda yakin ingin mereset data bulan ${monthInfo.name} kembali ke bawaan awal?`)) {
@@ -491,10 +483,11 @@
             return (sum / vals.length);
         }
 
+        // PERBAIKAN LOGIKA FILTER PROBLEM STATUS (CASE-INSENSITIVE & HANDLES DASH)
         function getFilteredData() {
             const search = document.getElementById('searchInput').value.toLowerCase();
             const filterSla = document.getElementById('filterSla').value;
-            const filterProblem = document.getElementById('filterProblem').value;
+            const filterProblem = document.getElementById('filterProblem').value.toLowerCase();
 
             return siteData.filter(row => {
                 const avg = calculateRowAverage(row.daily || {});
@@ -506,7 +499,19 @@
                                       (row.provinsi || '').toLowerCase().includes(search);
 
                 const matchesSla = (filterSla === 'ALL') || (slaStatus === filterSla);
-                const matchesProblem = (filterProblem === 'ALL') || (row.problem_status === filterProblem);
+
+                // Normalisasi status problem dari data
+                const rawProblemStatus = (row.problem_status || '').trim().toLowerCase();
+                let matchesProblem = false;
+
+                if (filterProblem === 'all') {
+                    matchesProblem = true;
+                } else if (filterProblem === 'open') {
+                    matchesProblem = (rawProblemStatus === 'open');
+                } else if (filterProblem === 'close') {
+                    // Jika bernilai 'close', '-', atau kosong dianggap Close
+                    matchesProblem = (rawProblemStatus === 'close' || rawProblemStatus === '-' || rawProblemStatus === '');
+                }
 
                 return matchesSearch && matchesSla && matchesProblem;
             });
