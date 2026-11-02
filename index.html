@@ -69,7 +69,7 @@
 
             <!-- Action Buttons & Controls Header -->
             <div class="flex items-center space-x-2">
-                <!-- Month Selector -->
+                <!-- Month Selector 2026 - 2027 -->
                 <div class="flex items-center bg-slate-800 border border-slate-700 rounded-lg px-2 py-1">
                     <i data-lucide="calendar" class="w-4 h-4 text-blue-400 mr-1.5"></i>
                     <select id="monthSelect" onchange="changeActiveMonth()" class="bg-transparent text-white text-xs font-semibold focus:outline-none cursor-pointer pr-1">
@@ -304,14 +304,35 @@
     <script>
         const SLA_THRESHOLD = 95.5;
 
-        // Month Definitions Configuration
-        const availableMonths = [
-            { code: 'OCT-26', name: 'Oktober 2026', days: 31 },
-            { code: 'NOV-26', name: 'November 2026', days: 30 },
-            { code: 'DEC-26', name: 'Desember 2026', days: 31 }
-        ];
+        // Generate full months for 2026 and 2027
+        function generateMonthList() {
+            const monthNames = [
+                'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
+                'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'
+            ];
+            const monthCodes = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
+            const years = [2026, 2027];
+            const list = [];
 
-        let currentMonthCode = 'OCT-26';
+            years.forEach(yr => {
+                const yrShort = String(yr).slice(-2);
+                monthNames.forEach((mName, idx) => {
+                    // Calculate days in month (handling leap years)
+                    const days = new Date(yr, idx + 1, 0).getDate();
+                    const code = `${monthCodes[idx]}-${yrShort}`;
+                    list.push({
+                        code: code,
+                        name: `${mName} ${yr}`,
+                        days: days
+                    });
+                });
+            });
+
+            return list;
+        }
+
+        const availableMonths = generateMonthList();
+        let currentMonthCode = 'OCT-26'; // Default selected month
         let dateColumns = [];
         let fixedHeaders = [];
         let siteData = [];
@@ -333,7 +354,7 @@
             if (footerLabel) footerLabel.innerText = monthInfo.name;
         }
 
-        // Initialize Month Selector Options
+        // Initialize Month Selector Options for 2026 and 2027
         function initMonthSelector() {
             const select = document.getElementById('monthSelect');
             select.innerHTML = availableMonths.map(m => `<option value="${m.code}">${m.name}</option>`).join('');
@@ -727,7 +748,6 @@
                     const data = new Uint8Array(e.target.result);
                     const workbook = XLSX.read(data, { type: 'array' });
                     
-                    // Check if there is a sheet matching currentMonthCode, otherwise use first sheet
                     let sheetName = workbook.SheetNames.find(s => s.toUpperCase().includes(currentMonthCode)) || workbook.SheetNames[0];
                     const worksheet = workbook.Sheets[sheetName];
                     const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
@@ -751,7 +771,6 @@
 
                         const dailyMap = {};
                         dateColumns.forEach(dateCol => {
-                            // Support flexible matching (e.g., '1-OCT-26' or just number '1')
                             const dayNum = dateCol.split('-')[0];
                             const val = rowObj[dateCol] !== undefined ? rowObj[dateCol] : rowObj[dayNum];
                             const num = parseFloat(val);
